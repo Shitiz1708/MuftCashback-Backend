@@ -20,7 +20,7 @@ module.exports.add = async(event,context,callback) =>{
         Date:order_date,
         ExpectDate:expected_date,
         Merchant: merchant,
-        Status:"Pending"
+        Status:status
     }
 
     const params = {
@@ -36,8 +36,21 @@ module.exports.add = async(event,context,callback) =>{
         ReturnValues: "UPDATED_NEW"
     }
 
+    const params1 = {
+        TableName:'Users',
+        Key:{
+            SubId:subid
+        },
+        UpdateExpression:"Set TentativeAmount=TentativeAmount+:amount",
+        ExpressionAttributeValues:{
+            ":amount":amount
+        },
+        ReturnValues: "UPDATED_NEW"
+    }
+
     try{
         var res = await dynamoDB.update(params).promise();
+        var res1 = await dynamoDB.update(params1).promise();
         console.log(res)
     }catch(err){
         console.log(err)

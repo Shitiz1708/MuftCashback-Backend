@@ -11,10 +11,10 @@
 #
 # Happy Coding!
 
-service: tracked-clicks
+service: telegram-bot
 # app and org for use with dashboard.serverless.com
-app: muftcashbackapp
-org: muftcashback
+#app: your-app-name
+#org: your-org-name
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
@@ -25,41 +25,8 @@ provider:
   runtime: nodejs12.x
 
 # you can overwrite defaults here
-  stage: dev
-  region: ap-south-1
-
-  environment:
-      DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/Users"
-
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/ClickHistory"
-
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/TrackedClicks"
+#  stage: dev
+#  region: us-east-1
 
 # you can add statements to the Lambda function's IAM Role here
 #  iamRoleStatements:
@@ -91,27 +58,8 @@ provider:
 #    - exclude-me-dir/**
 
 functions:
-      add:
-        handler: addtrackedclick.add
-        events:
-        - http:
-            path: addtrackedclick
-            method: post
-            cors: true
-      set:
-        handler: setstatusconfirmed.set
-        events:
-        - http:
-            path: setstatusconfirmed
-            method: post
-            cors: true
-      fetch:
-        handler: fetchalltrackedclicks.fetch
-        events:
-        - http:
-            path: fetchalltrackedclicks
-            method: post
-            cors: true
+  hello:
+    handler: handler.hello
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
