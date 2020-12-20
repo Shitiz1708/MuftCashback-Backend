@@ -25,11 +25,11 @@ provider:
   runtime: nodejs12.x
 
 # you can overwrite defaults here
- stage: dev
- region: ap-south-1
+  stage: dev
+  region: ap-south-1
 
- environment:
-    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  environment:
+      DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -92,10 +92,10 @@ provider:
 
 functions:
       add:
-        handler: addtrackedclicks.add
+        handler: addtrackedclick.add
         events:
         - http:
-            path: addtrackedclicks
+            path: addtrackedclick
             method: post
             cors: true
 #    The following are a few example events you can configure
