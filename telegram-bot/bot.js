@@ -15,3 +15,4 @@ bot.on('text',(ctx)=>{
 module.exports = {
     bot
 }
+
