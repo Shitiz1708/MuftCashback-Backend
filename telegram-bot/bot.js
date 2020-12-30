@@ -1,11 +1,7 @@
 // This file contains all bot functions
 
 const { Telegraf } = require('telegraf');
-// const axios = require('axios');
-
-
-
-
+const axios = require('axios');
 
 const bot = new Telegraf('1439119247:AAFhbFCsa9LkVN4x9f-Gq549z4GSNQ_mI8s')
 
