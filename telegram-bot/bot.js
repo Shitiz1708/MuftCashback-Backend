@@ -6,7 +6,8 @@ const axios = require('axios');
 const bot = new Telegraf('1439119247:AAFhbFCsa9LkVN4x9f-Gq549z4GSNQ_mI8s')
 
 
-const AWS = require('aws-sdk')
+const AWS = require('aws-sdk');
+const { link } = require('fs');
 const dynamoDB = new AWS.DynamoDB.DocumentClient()
 
 function validateEmail(email) {
@@ -165,6 +166,56 @@ const createAffLink = (link,user) =>{
     return afflink
 }
 
+const convertLink = async(link,currUser) =>{
+    console.log(link)
+
+    //unshorten the link
+    var unshortedLink = await unshortenLink(link)
+    console.log(unshortedLink)
+    
+    //Create Affiliate Link
+    var afflink = createAffLink(unshortedLink,currUser)
+    console.log(afflink)
+
+    //Shorten the link
+    var shortlink = await shortenLink(afflink)
+    console.log(shortlink)
+
+    return shortlink
+}
+
+function validURL(str) {
+    var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+        '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+        '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+        '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+        '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+    return !!pattern.test(str);
+}
+
+const convertMessage = async(message,currUser) =>{
+    var messageLines = message.split("\n")
+    var messageList = []
+    for(var line=0;line<messageLines.length;line++){
+        var strings = messageLines[line].split(" ")
+        var l = []
+        for(var i=0;i<strings.length;i++){
+            if(validURL(strings[i])==true){
+                var converted_link = await convertLink(strings[i],currUser) 
+                l.push(converted_link)
+            }else{
+                l.push(strings[i])
+            }
+        }
+        messageList.push(l.join(" "))
+    }
+
+    var return_message = messageList.join("\n")
+    
+    return return_message
+}
+
 
 
 bot.start((ctx)=>{
@@ -219,7 +270,6 @@ bot.on('text',async(ctx)=>{
     //Check if a person with this chat id is registered or not
     const chat_id = ctx.chat.id
     const allUsers = await getCompleteUsertable()
-    console.log(allUsers)
     var currUser = null
     for(var i=0;i<allUsers.length;i++){
         if(allUsers[i]['UserBotId']==chat_id){
@@ -232,23 +282,13 @@ bot.on('text',async(ctx)=>{
         return ctx.reply('User Not Found! Please Register to our app and use the same email to register to this bot')
     }
 
-    var vanillaLink = ctx.message.text
-    console.log(vanillaLink)
+    var message = ctx.message.text
+    console.log(typeof message)
 
-    //unshorten the link
-    var unshortedLink = await unshortenLink(vanillaLink)
-    console.log(unshortedLink)
-    
-    //Create Affiliate Link
-    var afflink = createAffLink(unshortedLink,currUser)
-    console.log(afflink)
-
-    //Shorten the link
-    var shortlink = await shortenLink(afflink)
-    console.log(shortlink)
+    var return_message = await convertMessage(message,currUser)
 
     //Return the link
-    return ctx.reply(shortlink)
+    return ctx.reply(return_message)
 })
 
 module.exports = {
