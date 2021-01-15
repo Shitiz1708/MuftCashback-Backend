@@ -29,7 +29,7 @@ const initiateReferrer = async(subid,chat_id) =>{
         }
     }
 
-    console.log(params)
+    // console.log(params)
 
     try{
         var res = await dynamoDB.update(params).promise()
@@ -58,7 +58,7 @@ const getCompleteUsertable = async() =>{
 
 const alreadyRegistered = async (email) =>{
     const allUsers = await getCompleteUsertable()
-    console.log(allUsers)
+    // console.log(allUsers)
     for(var i=0;i<allUsers.length;i++){
         console.log("Inside Loop")
         if(allUsers[i]['Email']==email && "BotEnabled" in allUsers[i]){
@@ -79,11 +79,11 @@ const shortenLink = async(url) =>{
                 "domain": "bit.ly"
             },
             headers:{
-                'Authorization': 'Bearer d060d7146eb5ba6f901ce28bf3c161b690391ed3',
+                'Authorization': 'Bearer 5009a293812d670bf4b0a678803db114a0a8edad',
                 'Content-Type': 'application/json'
             }
         })
-        console.log(response['data']['link'])
+        // console.log(response['data']['link'])
         return response['data']['link']
     }catch(err){
         console.log(err)
@@ -97,7 +97,7 @@ const unshortenLink = async(link) =>{
         return response.request.res.responseUrl
     }catch(err){
         console.log(err)
-        return ctx.reply('Link cannot be unshorten')
+        return err
     }
 }
 
@@ -107,8 +107,10 @@ const merchantFlipkart = (link,user) =>{
     //2.2 Add personal affid and affExtParam as User Subid
     //2.3 Replace www by dl
     var listOfStrings = link.split("&")
+    console.log(listOfStrings)
     for(var i=0;i<listOfStrings.length;i++){
         if(listOfStrings[i].includes('cmpid') || listOfStrings[i].includes('affid') || listOfStrings[i].includes('affExtParam1') || listOfStrings[i].includes('affExtParam2')){
+            console.log("Removed "+ listOfStrings[i])
             listOfStrings.splice(i,1)
         }else if(listOfStrings[i].includes('www')){
             listOfStrings[i].replace('www','dl')
@@ -124,7 +126,7 @@ const merchantAmazon = (link,user) =>{
     if('AmazonEnabled' in user){
         var idx = link.indexOf("tag=")
         var affLink = null
-        console.log(idx)
+        // console.log(idx)
         if(idx!=-1){
             var tempstr = ""
             for(var i=idx+4;i<link.length;i++){
@@ -202,6 +204,7 @@ const convertMessage = async(message,currUser) =>{
         var l = []
         for(var i=0;i<strings.length;i++){
             if(validURL(strings[i])==true){
+                console.log("VALID URL")
                 var converted_link = await convertLink(strings[i],currUser) 
                 l.push(converted_link)
             }else{
@@ -266,6 +269,7 @@ bot.command('register',async (ctx)=>{
 
 })
 
+
 bot.on('text',async(ctx)=>{
     //Check if a person with this chat id is registered or not
     const chat_id = ctx.chat.id
@@ -283,7 +287,12 @@ bot.on('text',async(ctx)=>{
     }
 
     var message = ctx.message.text
-    console.log(typeof message)
+    // message.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+    // console.log(typeof message)
+    console.log(message)
+    // message = removeEmojis(message)
+    // console.log(message)
+    
 
     var return_message = await convertMessage(message,currUser)
 
