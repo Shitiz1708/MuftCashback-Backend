@@ -91,11 +91,11 @@ provider:
 #    - exclude-me-dir/**
 
 functions:
-      hello:
-        handler: handler.hello
+      create:
+        handler: createUser.create
         events:
         - http:
-            path: hello
+            path: create
             method: post
             cors: true
 #    The following are a few example events you can configure
