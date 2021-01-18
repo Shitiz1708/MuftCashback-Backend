@@ -106,19 +106,36 @@ const merchantFlipkart = (link,user) =>{
     //2.1 Remove cmpid,affid,affExtparam1
     //2.2 Add personal affid and affExtParam as User Subid
     //2.3 Replace www by dl
-    var listOfStrings = link.split("&")
-    console.log(listOfStrings)
-    for(var i=0;i<listOfStrings.length;i++){
-        if(listOfStrings[i].includes('cmpid') || listOfStrings[i].includes('affid') || listOfStrings[i].includes('affExtParam1') || listOfStrings[i].includes('affExtParam2')){
-            console.log("Removed "+ listOfStrings[i])
-            listOfStrings.splice(i,1)
-        }else if(listOfStrings[i].includes('www')){
-            listOfStrings[i].replace('www','dl')
+    var [baseUrl,headers] = link.split("?")
+    var listOfStrings=[];
+    if(typeof headers !== 'undefined')
+    {
+        listOfStrings = headers.split("&")
+        console.log(listOfStrings)
+        for(var i=0;i<listOfStrings.length;i++){
+            if(listOfStrings[i].includes('cmpid')){
+                console.log("Removed "+ listOfStrings[i])
+                listOfStrings.splice(i,1)
+            }
+            if(listOfStrings[i].includes('affid')){
+                console.log("Removed "+ listOfStrings[i])
+                listOfStrings.splice(i,1)
+            }
+            if(listOfStrings[i].includes('affExtParam1')){
+                console.log("Removed "+ listOfStrings[i])
+                listOfStrings.splice(i,1)
+            }
+            if(listOfStrings[i].includes('affExtParam2')){
+                console.log("Removed "+ listOfStrings[i])
+                listOfStrings.splice(i,1)
+            }
         }
     }
     listOfStrings.push('affid=bansalsid')
     listOfStrings.push('affExtParam1='+user['SubId'])
-    var affLink = listOfStrings.join('&')
+    var headerString = listOfStrings.join('&')
+    baseUrl = baseUrl.replace('www','dl')
+    var affLink = baseUrl+'?'+headerString
     return affLink
 }
 
@@ -193,6 +210,7 @@ function validURL(str) {
         '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
         '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
         '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+    // var pattern = new RegExp('_^(?:(?:https?|ftp)://)(?:\S+(?::\S*)?@)?(?:(?!10(?:\.\d{1,3}){3})(?!127(?:\.\d{1,3}){3})(?!169\.254(?:\.\d{1,3}){2})(?!192\.168(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\x{00a1}-\x{ffff}0-9]+-?)*[a-z\x{00a1}-\x{ffff}0-9]+)(?:\.(?:[a-z\x{00a1}-\x{ffff}0-9]+-?)*[a-z\x{00a1}-\x{ffff}0-9]+)*(?:\.(?:[a-z\x{00a1}-\x{ffff}]{2,})))(?::\d{2,5})?(?:/[^\s]*)?$_iuS')
     return !!pattern.test(str);
 }
 
