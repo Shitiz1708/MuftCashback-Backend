@@ -217,12 +217,14 @@ function validURL(str) {
 const convertMessage = async(message,currUser) =>{
     var messageLines = message.split("\n")
     var messageList = []
+    var linkFound=false
     for(var line=0;line<messageLines.length;line++){
         var strings = messageLines[line].split(" ")
         var l = []
         for(var i=0;i<strings.length;i++){
             if(validURL(strings[i])==true){
                 console.log("VALID URL")
+                linkFound=true
                 var converted_link = await convertLink(strings[i],currUser) 
                 l.push(converted_link)
             }else{
