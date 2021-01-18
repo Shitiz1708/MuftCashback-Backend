@@ -112,22 +112,24 @@ const merchantFlipkart = (link,user) =>{
     {
         listOfStrings = headers.split("&")
         console.log(listOfStrings)
-        for(var i=0;i<listOfStrings.length;i++){
+        for(var i=0;i<listOfStrings.length;){
             if(listOfStrings[i].includes('cmpid')){
                 console.log("Removed "+ listOfStrings[i])
                 listOfStrings.splice(i,1)
             }
-            if(listOfStrings[i].includes('affid')){
+            else if(listOfStrings[i].includes('affid')){
                 console.log("Removed "+ listOfStrings[i])
                 listOfStrings.splice(i,1)
             }
-            if(listOfStrings[i].includes('affExtParam1')){
+            else if(listOfStrings[i].includes('affExtParam1')){
                 console.log("Removed "+ listOfStrings[i])
                 listOfStrings.splice(i,1)
             }
-            if(listOfStrings[i].includes('affExtParam2')){
+            else if(listOfStrings[i].includes('affExtParam2')){
                 console.log("Removed "+ listOfStrings[i])
                 listOfStrings.splice(i,1)
+            }else{
+                i++;
             }
         }
     }
