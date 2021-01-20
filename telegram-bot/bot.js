@@ -281,7 +281,7 @@ bot.start((ctx)=>{
     return ctx.reply('Hello There! Please register to the bot using /register <email>');
 })
 
-bot.command('register',async (ctx)=>{
+async function register (ctx){
     var msg = ctx.message.text
     var email = msg.substring(10);
 
@@ -321,9 +321,12 @@ bot.command('register',async (ctx)=>{
         }
     }
 
-    return ctx.reply('Account Not Found. Please register to our app')    
+    return ctx.reply('Account Not Found. Please register to our app') 
+}
 
-})
+bot.command('register',register)
+bot.command('Register',register)
+
 
 
 bot.on('text',async(ctx)=>{
