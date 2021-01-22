@@ -257,12 +257,17 @@ const convertMessage = async(message,currUser) =>{
     for(var line=0;line<messageLines.length;line++){
         var strings = messageLines[line].split(" ")
         var l = []
+        var counter = 0
         for(var i=0;i<strings.length;i++){
             if(validURL(strings[i])==true){
                 console.log("VALID URL")
                 linkFound=true
                 var converted_link = await convertLink(strings[i],currUser) 
                 l.push(converted_link)
+                counter+=1
+                if(counter==5){
+                    return "Please send less than 5 links in single message"
+                }
             }else{
                 l.push(strings[i])
             }

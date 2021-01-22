@@ -23,7 +23,7 @@ frameworkVersion: '2'
 provider:
   name: aws
   runtime: nodejs12.x
-  timeout: 10
+  timeout: 25
 
 # you can overwrite defaults here
   stage: dev
