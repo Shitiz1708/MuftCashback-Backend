@@ -2,6 +2,8 @@
 
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
+const { merchantFlipkart } = require('./flipkart.js')
+const { merchantAmazon } = require('./amazon.js')
 
 const bot = new Telegraf('1439119247:AAFhbFCsa9LkVN4x9f-Gq549z4GSNQ_mI8s')
 
@@ -69,7 +71,7 @@ const alreadyRegistered = async (email) =>{
     return false
 }
 
-const shortenLink = async(url) =>{
+const shortenLink = async(url,ctx) =>{
     try{
         const response = await axios({
             method:'post',
@@ -91,77 +93,13 @@ const shortenLink = async(url) =>{
     }
 }
 
-const unshortenLink = async(link) =>{
+const unshortenLink = async(link,ctx) =>{
     try{
         var response = await axios.get(link)
         return response.request.res.responseUrl
     }catch(err){
         console.log(err)
         return err
-    }
-}
-
-const merchantFlipkart = (link,user) =>{
-    //2. For Flipkart
-    //2.1 Remove cmpid,affid,affExtparam1
-    //2.2 Add personal affid and affExtParam as User Subid
-    //2.3 Replace www by dl
-    var [baseUrl,headers] = link.split("?")
-    var listOfStrings=[];
-    if(typeof headers !== 'undefined')
-    {
-        listOfStrings = headers.split("&")
-        console.log(listOfStrings)
-        for(var i=0;i<listOfStrings.length;){
-            if(listOfStrings[i].includes('cmpid')){
-                console.log("Removed "+ listOfStrings[i])
-                listOfStrings.splice(i,1)
-            }
-            else if(listOfStrings[i].includes('affid')){
-                console.log("Removed "+ listOfStrings[i])
-                listOfStrings.splice(i,1)
-            }
-            else if(listOfStrings[i].includes('affExtParam1')){
-                console.log("Removed "+ listOfStrings[i])
-                listOfStrings.splice(i,1)
-            }
-            else if(listOfStrings[i].includes('affExtParam2')){
-                console.log("Removed "+ listOfStrings[i])
-                listOfStrings.splice(i,1)
-            }else{
-                i++;
-            }
-        }
-    }
-    listOfStrings.push('affid=bansalsid')
-    listOfStrings.push('affExtParam1='+user['SubId'])
-    var headerString = listOfStrings.join('&')
-    baseUrl = baseUrl.replace('www','dl')
-    var affLink = baseUrl+'?'+headerString
-    return affLink
-}
-
-const merchantAmazon = (link,user) =>{
-    if('AmazonEnabled' in user){
-        var idx = link.indexOf("tag=")
-        var affLink = null
-        // console.log(idx)
-        if(idx!=-1){
-            var tempstr = ""
-            for(var i=idx+4;i<link.length;i++){
-                if(link[i]=='&'){
-                    break
-                }
-                tempstr+=link[i]
-            }
-            console.log(tempstr)
-            affLink = link.replace(tempstr,user['SubId']+'-21')
-        }else{
-            affLink = link+"?tag="+user['SubId']+'-21'
-        }
-        return affLink
-    }else{
-        return ctx.reply('Please register on our app for using amazon affiliate')
     }
 }
 
@@ -176,30 +114,67 @@ const checkMerchant = (link) =>{
     }
 }
 
-const createAffLink = (link,user) =>{
+const getAccessToken = async() =>{
+    const client_id = 'y7FC42QPcbVEaZB7bdSFvck3LdFh4s'
+    const client_secret = '6LmGAmP1Sn1ctUXdabyPRDNOnjHvZ7'
+    const base64header = 'eTdGQzQyUVBjYlZFYVpCN2JkU0Z2Y2szTGRGaDRzOjZMbUdBbVAxU24xY3RVWGRhYnlQUkROT25qSHZaNw=='
+
+    const params = new URLSearchParams()
+    params.append('grant_type','client_credentials')
+    params.append('client_id',client_id)
+    params.append('scope','advcampaigns banners websites deeplink_generator')
+    const config = {
+        headers:{
+            'Authorization': 'Basic '+base64header,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    }
+    try{
+        const response = await axios.post('https://api.admitad.com/token/',params,config)
+        const token = response['data']['access_token']
+        console.log(token)
+        return token
+    }catch(err){
+        console.log(err)
+        return err
+    }
+}
+
+const merchantThirdParty = async(link,user,ctx) =>{
+    //Get the access token
+    const accessToken = await getAccessToken()
+    return ctx.reply(accessToken)
+    //Get c_id from the link
+
+    //Convert into deeplink
+}
+
+const createAffLink = async (link,user,ctx) =>{
     var merchant = checkMerchant(link)
     var afflink = null
     if(merchant=='flipkart'){
-        afflink = merchantFlipkart(link,user)
+        afflink = merchantFlipkart(link,user,ctx)
     }else if(merchant=='amazon'){
-        afflink = merchantAmazon(link,user)
+        afflink = merchantAmazon(link,user,ctx)
+    }else{
+        afflink = await merchantThirdParty(link,user,ctx)
     }
     return afflink
 }
 
-const convertLink = async(link,currUser) =>{
+const convertLink = async(link,currUser,ctx) =>{
     console.log(link)
 
     //unshorten the link
-    var unshortedLink = await unshortenLink(link)
+    var unshortedLink = await unshortenLink(link,ctx)
     console.log(unshortedLink)
     
     //Create Affiliate Link
-    var afflink = createAffLink(unshortedLink,currUser)
+    var afflink = await createAffLink(unshortedLink,currUser,ctx)
     console.log(afflink)
 
     //Shorten the link
-    var shortlink = await shortenLink(afflink)
+    var shortlink = await shortenLink(afflink,ctx)
     console.log(shortlink)
 
     return shortlink
@@ -250,7 +225,7 @@ function validURL(str) {
     return !!pattern.test(str);
 }
 
-const convertMessage = async(message,currUser) =>{
+const convertMessage = async(message,currUser,ctx) =>{
     var messageLines = message.split("\n")
     var messageList = []
     var linkFound=false
@@ -263,7 +238,7 @@ const convertMessage = async(message,currUser) =>{
             if(validURL(strings[i])==true){
                 console.log("VALID URL")
                 linkFound=true
-                var converted_link = await convertLink(strings[i],currUser) 
+                var converted_link = await convertLink(strings[i],currUser,ctx) 
                 l.push(converted_link)
                 counter+=1
                 if(counter==6){
@@ -352,14 +327,9 @@ bot.on('text',async(ctx)=>{
     }
 
     var message = ctx.message.text
-    // message.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
-    // console.log(typeof message)
     console.log(message)
-    // message = removeEmojis(message)
-    // console.log(message)
-    
 
-    var return_message = await convertMessage(message,currUser)
+    var return_message = await convertMessage(message,currUser,ctx)
 
     //Return the link
     return ctx.reply(return_message)
