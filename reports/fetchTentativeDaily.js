@@ -4,6 +4,7 @@
 const AWS = require('aws-sdk')
 const axios = require('axios')
 const dynamoDB = new AWS.DynamoDB.DocumentClient()
+const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 
 function formatDate(date) {
     var d = new Date(date),
@@ -86,60 +87,92 @@ const sortAllDataAccToSubId = async(data) =>{
     return sortedData
 }
 
-const updateDataToDb = async(data) =>{
+const checkIfPrefixExists = async(prefix) =>{
+    const params = {
+        Bucket:'muftcashback-reports',
+        Prefix:prefix
+    }
     
+    try{
+        var res = await s3.listObjectsV2(params).promise()
+        console.log(res)
+    }catch(err){
+        console.log(err)
+    }
+}
 
-    for (var key in data){
-        var products=data[key]
-        console.log(key)
-        var tentativeamount = 0
-        for(var entry in data[key]){
-            tentativeamount+=data[key]['tentativeCommission']
-        }
+// const updateToS3 = async(data,date) =>{
+//     await checkIfPrefixExists('708c750b-69c9-4ae8-b1fd-f4e110a4c923')
+// }
 
-        const params = {
-            TableName:'TrackedClicks',
-            Key:{
-                SubId:key
-            },
-            UpdateExpression:"SET Tentative=list_append(if_not_exists(Tentative,:emptylist),:products)",
-            ExpressionAttributeValues:{
-                ":emptylist":[],
-                ":products":products
-            },
-            ReturnValues: "UPDATED_NEW"
-        }
+const updateDataToDb = async(data,date) =>{
+    
+    for(var user in data){
+        if(user=="708c750b-69c9-4ae8-b1fd-f4e110a4c923"){
+            var allproducts = data[user]
+            var amount = 0
+            for(var entry in allproducts){
+                amount+=allproducts[entry]['tentativeCommission']
 
-        const params1 = {
-            TableName:'Users',
-            Key:{
-                SubId:key
-            },
-            UpdateExpression:"Set TentativeAmount=TentativeAmount+:amount",
-            ExpressionAttributeValues:{
-                ":amount":tentativeamount
-            },
-            ReturnValues: "UPDATED_NEW"
-        }
+            }
+            console.log(user,date,amount)
+            // await checkIfPrefixExists('708c750b-69c9-4ae8-b1fd-f4e110a4c92')
+            
+            // const params = {
+            //     TableName:'TrackedClicks',
+            //     Key:{
+            //         SubId:user
+            //     },
+            //     UpdateExpression:"SET Tentative.#date=list_append(if_not_exists(Tentative.#date,:emptylist),:products)",
+            //     ExpressionAttributeValues:{
+            //         ":emptylist":[],
+            //         ":products":allproducts
+            //     },
+            //     ExpressionAttributeNames:{
+            //         "#date":date
+            //     },
+            //     ReturnValues: "UPDATED_NEW"
+            // }
+            // try{
+            //     var res = await s3.listBuckets().promise()
+            //     console.log(res)
+            // }catch(err){
+            //     console.log(err)
+            //     return err
+            // }
 
-        try{
-            var res = await dynamoDB.update(params).promise();
-            var res1 = await dynamoDB.update(params1).promise();
-            console.log(res)
-        }catch(err){
-            console.log(err)
-            return err
+            const params1 = {
+                TableName:'Users',
+                Key:{
+                    SubId:user
+                },
+                UpdateExpression:"Set TentativeAmount=TentativeAmount+:amount",
+                ExpressionAttributeValues:{
+                    ":amount":amount
+                },
+                ReturnValues: "UPDATED_NEW"
+            }
+
+            try{
+                // var res = await dynamoDB.update(params).promise();
+                var res1 = await dynamoDB.update(params1).promise();
+                console.log(res1)
+            }catch(err){
+                console.log(err)
+                return err
+            }
         }
     }
-
 }
+
 
 module.exports.fetch = async(event,context,callback) =>{
     const data = JSON.parse(event.body)
-    const date = formatDate(new Date())
+    const date = data['date']
+    console.log(date)
     const status = 'tentative'
     const allData = await getAllDataSorted(date,date,status)
-    await updateDataToDb(allData)
+    await updateDataToDb(allData,date)
 
-    return { statusCode:200 , body:"SUCCESSFULLY UPDATED" }
+    return { statusCode:200 , body:"Successful" }
 }
