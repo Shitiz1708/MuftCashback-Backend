@@ -1,0 +1,5 @@
+1. Create Month Folder every last day of the Month (Create user and tentative/approved folder not dates)
+2. Fetch Tentative Daily 3 times and update to s3 according to date
+3. If user is generated mid month then configiure app to create this prefix in s3 (Important)
+4. Make ConfigureS3 run on every month start
+5. Make Fetchtentativedaily run 3 times a day

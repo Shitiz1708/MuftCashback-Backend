@@ -20,6 +20,11 @@ function formatDate(date) {
     return [year, month, day].join('-');
 }
 
+const getMonthYearDay = (date)=>{
+    const [year,month,day]=date.split('-')
+    return [year,month,date]
+}
+
 
 
 const getAllDataSorted = async(startDate,endDate,status) =>{
@@ -71,39 +76,94 @@ const clearUnnecessaryDetails = (data) =>{
     return product
 }
 
+const getAllUsersSubId = async() =>{
+    const params = {
+        TableName:'Users'
+    }
+    try{
+        var res = await dynamoDB.scan(params).promise()
+        console.log(res);
+    }catch(err){
+        console.log(err);
+        return err;
+    }
+    var subIds = new Array();
+    for(var i=0;i<res.Items.length;i++){
+        subIds.push(res.Items[i]['SubId'])
+    }
+    return subIds
+
+}
+
 const sortAllDataAccToSubId = async(data) =>{
+    const allSubIds = await getAllUsersSubId()
     var sortedData = new Object
     for(var i=0;i<data.length;i++){
         const entry = data[i]
         var clearedData = clearUnnecessaryDetails(entry)
-        if(sortedData.hasOwnProperty(entry['affExtParam1'])){
-            sortedData[entry['affExtParam1']].push(clearedData)
-        }else{
-            sortedData[entry['affExtParam1']]=new Array()
-            sortedData[entry['affExtParam1']].push(clearedData)
+        if(allSubIds.includes(entry['affExtParam1'])==true){
+            if(sortedData.hasOwnProperty(entry['affExtParam1'])){
+                sortedData[entry['affExtParam1']].push(clearedData)
+            }else{
+                sortedData[entry['affExtParam1']]=new Array()
+                sortedData[entry['affExtParam1']].push(clearedData)
+            }
         }
     }
     console.log(sortedData)
     return sortedData
 }
 
-const checkIfPrefixExists = async(prefix) =>{
-    const params = {
-        Bucket:'muftcashback-reports',
-        Prefix:prefix
-    }
-    
-    try{
-        var res = await s3.listObjectsV2(params).promise()
-        console.log(res)
-    }catch(err){
-        console.log(err)
-    }
-}
+const updateDataToS3 = async(data,date,status) =>{
+    const [year,month,day] = getMonthYearDay(date)
+    for (var user in data){
+        var allproducts=data[user]
+        var amount = 0
+        for(var entry in allproducts){
+            amount+=allproducts[entry]['tentativeCommission']
+        }
+        console.log(user,date,amount)
 
-// const updateToS3 = async(data,date) =>{
-//     await checkIfPrefixExists('708c750b-69c9-4ae8-b1fd-f4e110a4c923')
-// }
+        //Updating data to S3
+        var params={
+            Body:JSON.stringify(allproducts),
+            Bucket:'muftcashback-reports-flipkart',
+            Key:year.toString()+'/'+month.toString()+'/'+user.toString()+'/'+'tentative'+'/'+day.toString()+'/'+date.toString()+'.json'
+        }
+        try{
+            var res=await s3.putObject(params).promise();
+            console.log(res)
+        }catch(err){
+            console.log(err)
+            return err
+        }
+
+        //Updating data to dynamo db
+        const params1 = {
+            TableName:'Users',
+            Key:{
+                SubId:user
+            },
+            UpdateExpression:"Set TentativeAmount=TentativeAmount+:amount",
+            ExpressionAttributeValues:{
+                ":amount":amount
+            },
+            ReturnValues: "UPDATED_NEW"
+        }
+
+        try{
+            var res1 = await dynamoDB.update(params1).promise();
+            console.log(res1)
+        }catch(err){
+            console.log(err)
+            return err
+        }
+    
+    }
+
+
+
+}
 
 const updateDataToDb = async(data,date) =>{
     
@@ -113,7 +173,6 @@ const updateDataToDb = async(data,date) =>{
             var amount = 0
             for(var entry in allproducts){
                 amount+=allproducts[entry]['tentativeCommission']
-
             }
             console.log(user,date,amount)
             // await checkIfPrefixExists('708c750b-69c9-4ae8-b1fd-f4e110a4c92')
@@ -141,26 +200,26 @@ const updateDataToDb = async(data,date) =>{
             //     return err
             // }
 
-            const params1 = {
-                TableName:'Users',
-                Key:{
-                    SubId:user
-                },
-                UpdateExpression:"Set TentativeAmount=TentativeAmount+:amount",
-                ExpressionAttributeValues:{
-                    ":amount":amount
-                },
-                ReturnValues: "UPDATED_NEW"
-            }
+            // const params1 = {
+            //     TableName:'Users',
+            //     Key:{
+            //         SubId:user
+            //     },
+            //     UpdateExpression:"Set TentativeAmount=TentativeAmount+:amount",
+            //     ExpressionAttributeValues:{
+            //         ":amount":amount
+            //     },
+            //     ReturnValues: "UPDATED_NEW"
+            // }
 
-            try{
-                // var res = await dynamoDB.update(params).promise();
-                var res1 = await dynamoDB.update(params1).promise();
-                console.log(res1)
-            }catch(err){
-                console.log(err)
-                return err
-            }
+            // try{
+            //     // var res = await dynamoDB.update(params).promise();
+            //     var res1 = await dynamoDB.update(params1).promise();
+            //     console.log(res1)
+            // }catch(err){
+            //     console.log(err)
+            //     return err
+            // }
         }
     }
 }
@@ -168,11 +227,12 @@ const updateDataToDb = async(data,date) =>{
 
 module.exports.fetch = async(event,context,callback) =>{
     const data = JSON.parse(event.body)
-    const date = data['date']
+    // const date = data['date']
+    const date='2021-05-01'
     console.log(date)
-    const status = 'tentative'
+    const status = 'approved'
     const allData = await getAllDataSorted(date,date,status)
-    await updateDataToDb(allData,date)
+    await updateDataToS3(allData,date,status)
 
     return { statusCode:200 , body:"Successful" }
 }
