@@ -7,7 +7,7 @@ const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 
 const getMonthYearDay = (date)=>{
     const [year,month,day]=date.split('-')
-    return [year,month,date]
+    return [year,month,day]
 }
 
 const getCompleteUsertable = async() =>{

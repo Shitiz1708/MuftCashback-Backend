@@ -6,26 +6,10 @@ const axios = require('axios')
 const dynamoDB = new AWS.DynamoDB.DocumentClient()
 const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 
-function formatDate(date) {
-    var d = new Date(date),
-        month = '' + (d.getMonth() + 1),
-        day = '' + d.getDate(),
-        year = d.getFullYear();
-
-    if (month.length < 2) 
-        month = '0' + month;
-    if (day.length < 2) 
-        day = '0' + day;
-
-    return [year, month, day].join('-');
-}
-
 const getMonthYearDay = (date)=>{
     const [year,month,day]=date.split('-')
     return [year,month,day]
 }
-
-
 
 const getAllDataSorted = async(startDate,endDate,status) =>{
     const url = 'https://affiliate-api.flipkart.net/affiliate/report/orders/detail/json?startDate='+startDate+'&endDate='+endDate+'&status='+status+'&offset=0'
@@ -114,8 +98,11 @@ const sortAllDataAccToSubId = async(data) =>{
     return sortedData
 }
 
-const updateDataToS3 = async(data,date,status) =>{
+const updateApprovedToS3 = async(data,date,status) =>{
     const [year,month,day] = getMonthYearDay(date)
+    //1. Upload the approved data to approved section
+    //2. Remove the approved data from tentative
+    
     for (var user in data){
         var allproducts=data[user]
         var amount = 0
@@ -128,7 +115,7 @@ const updateDataToS3 = async(data,date,status) =>{
         var params={
             Body:JSON.stringify(allproducts),
             Bucket:'muftcashback-reports-flipkart',
-            Key:year.toString()+'/'+month.toString()+'/'+user.toString()+'/'+'tentative'+'/'+day.toString()+'/'+date.toString()+'.json'
+            Key:year.toString()+'/'+month.toString()+'/'+user.toString()+'/'+'approved'+'/'+day.toString()+'/'+date.toString()+'.json'
         }
         try{
             var res=await s3.putObject(params).promise();
@@ -158,19 +145,15 @@ const updateDataToS3 = async(data,date,status) =>{
             console.log(err)
             return err
         }
-    
+
     }
+
+    
 }
 
-
-module.exports.fetch = async(event,context,callback) =>{
+module.exports.approve = async(event,context,callback) =>{
     const data = JSON.parse(event.body)
-    // const date = data['date']
-    const date='2021-05-01'
-    console.log(date)
+    const date = data['date']
     const status = 'approved'
     const allData = await getAllDataSorted(date,date,status)
-    await updateDataToS3(allData,date,status)
-
-    return { statusCode:200 , body:"Successful" }
 }
